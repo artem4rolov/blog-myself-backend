@@ -10,6 +10,10 @@ const post = {
     type: String,
     required: true,
   },
+  viewCount: {
+    type: Number,
+    default: 0,
+  },
   author: {
     type: String,
     required: true,
