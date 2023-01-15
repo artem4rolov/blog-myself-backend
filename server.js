@@ -1,5 +1,7 @@
 // библиотека для создания сервера
 const express = require("express");
+// создаем наше приложение на основе библиотеки express
+const app = express();
 // dotenv для использования переменных окружения
 require("dotenv").config();
 // библиотека для подключения к MongoDB
@@ -12,12 +14,25 @@ const bodyParser = require("body-parser");
 const path = require("path");
 // достаем пути запросов для пользователей
 const users = require("./routes/api/users");
-
-// создаем наше приложение на основе библиотеки express
-const app = express();
 // учим наше приложение читать JSON - формат данных (который в req.body)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+
+// модель изображений
+var imgModel = require("./models/Image");
+// multer - библиотека для загрузки файлов
+var multer = require("multer");
+// настраиваем хранилище для обработки изображений
+var storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads");
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.fieldname + "-" + Date.now());
+  },
+});
+// загружаем наши файлы в хранилище
+var upload = multer({ storage: storage });
 
 // достаем переменную окружения
 const MONGO_URI = process.env.MONGO_URI;
