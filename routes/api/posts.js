@@ -181,44 +181,26 @@ router.delete(
       return res[0];
     });
 
-    Post.find({ _id: deletedComment.post })
-      .then((res) => {
-        res[0].comments.map((comment) =>
-          comment.update({ $pull: { comment: deletedComment._id } })
-        );
-      })
-      .then(() => console.log("ok"));
+    Post.updateOne(
+      { _id: deletedComment.post },
+      {
+        $pullAll: {
+          comments: [{ _id: req.params.id }],
+        },
+      }
+    )
+      .then(() =>
+        Comment.findOneAndDelete({
+          _id: id,
+        })
+      )
+      .then(() =>
+        console.log(
+          "Комментарий удален из модели поста и из модели комментариев"
+        )
+      );
 
-    // .then(async (res) => {
-    //   const post = await Post.findById({ _id: res[0].post.toString() });
-    //   return post;
-    // })
-    // .then((res) => {
-    //   const newArray = res.comments.map((comment, index) => {
-    //     if (comment.toString() === deletedComment._id.toString()) {
-    //       res.comments.splice(index, 1);
-    //       return res;
-    //     }
-    //     return res;
-    //   });
-
-    //   res.comments = newArray;
-    //   return res;
-    // })
-    // .then((res) =>
-    //   Post.findByIdAndUpdate(
-    //     { _id: deletedComment.post },
-    //     {
-    //       comments: res,
-    //     }
-    //   )
-    // )
-    // .then(() =>
-    //   Comment.findOneAndDelete({
-    //     _id: id,
-    //   })
-    // )
-    // .then((doc) => res.status(200).json(doc));
+    res.send("Комментарий удален из модели поста и из модели комментариев");
   }
 );
 
