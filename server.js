@@ -2,6 +2,10 @@
 const express = require("express");
 // создаем наше приложение на основе библиотеки express
 const app = express();
+// cors - politicy
+const cors = require("cors");
+// даем доступ к бэкенду (обходим cors)
+app.use(cors());
 // dotenv для использования переменных окружения
 require("dotenv").config();
 // библиотека для подключения к MongoDB
@@ -55,6 +59,13 @@ require("./middleware/passport")(passport);
 
 // запросы
 // авторизация, регистрация
+// тест
+app.get("/", (req, res) => {
+  res.json({
+    message: "Hello from backend",
+  });
+});
+
 app.use("/api/users", users);
 // посты - получение, создание, обновление, удаление
 app.use("/api/posts/", require("./routes/api/posts"));

@@ -9,6 +9,7 @@ const userModel = {
   email: {
     type: String,
     required: true,
+    unique: true,
   },
   password: {
     type: String,
@@ -17,6 +18,9 @@ const userModel = {
   avatar: {
     type: String,
     required: false,
+  },
+  token: {
+    type: String,
   },
 };
 

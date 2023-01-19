@@ -4,6 +4,7 @@ const Post = require("../../models/Post");
 const Comment = require("../../models/Comment");
 const passport = require("passport");
 const validatePostInput = require("../../validation/post");
+const auth = require("../../middleware/auth");
 
 // получение всех постов
 // доступно любому пользователю
@@ -50,7 +51,8 @@ router.get("/author/:author", (req, res) => {
 // Создание поста
 router.post(
   "/create",
-  passport.authenticate("jwt", { session: false }),
+  // passport.authenticate("jwt", { session: false }),
+  auth,
   (req, res) => {
     const author = req.user.user_name;
     const post = req.body;
@@ -70,7 +72,8 @@ router.post(
 // Создание комментария к посту
 router.post(
   "/:id/comment",
-  passport.authenticate("jwt", { session: false }),
+  // passport.authenticate("jwt", { session: false }),
+  auth,
   async (req, res) => {
     // находим id поста, к которому хотим создать комментарий
     const id = req.params.id;
@@ -101,7 +104,8 @@ router.post(
 // Обновление поста
 router.patch(
   "/update/:id",
-  passport.authenticate("jwt", { session: false }),
+  // passport.authenticate("jwt", { session: false }),
+  auth,
   (req, res) => {
     // вытаскиваем автора из запроса
     const author = req.user.user_name;
@@ -133,7 +137,8 @@ router.patch(
 router.delete(
   "/delete/:id",
   // идентифицируем пользователя
-  passport.authenticate("jwt", { session: false }),
+  // passport.authenticate("jwt", { session: false }),
+  auth,
   async (req, res) => {
     // ищем автора поста
     const author = req.user.user_name;
@@ -143,26 +148,32 @@ router.delete(
     Post.findById({
       _id: id,
     }).then((res) => {
-      // перебираем массив с комментариями в посте
-      res.comments.forEach((comment) =>
-        // в этом массиве, в каждом комментарии находится id комментария
-        // теперь идем в модель Comment, находим каждый комментарий по id (comment) и удаляем его
-        Comment.findByIdAndDelete({
-          _id: comment,
-        })
-          // затем удаляем сам пост, в котором были эти комментарии
-          .then((res) =>
-            Post.findByIdAndDelete({
-              author,
-              _id: req.params.id,
-            })
-          )
-          .then(() => console.log("Пост с комментариями удален"))
-          .catch((err) => console.log(err))
-      );
+      if (res.comments.length > 0) {
+        // перебираем массив с комментариями в посте
+        res.comments.forEach((comment) =>
+          // в этом массиве, в каждом комментарии находится id комментария
+          // теперь идем в модель Comment, находим каждый комментарий по id (comment) и удаляем его
+          Comment.findByIdAndDelete({
+            _id: comment,
+          })
+            // затем удаляем сам пост, в котором были эти комментарии
+            .then((res) =>
+              Post.findByIdAndDelete({
+                author,
+                _id: req.params.id,
+              })
+            )
+            .then(() => console.log("Пост с комментариями удален"))
+            .catch((err) => console.log(err))
+        );
+      } else {
+        Post.findByIdAndDelete({
+          author,
+          _id: req.params.id,
+        }).then(() => console.log("Пост удален"));
+      }
     });
-    // если все ок - выводим сообщение
-    res.send("Пост с комментариями удален");
+    res.send("Пост удален");
   }
 );
 
@@ -171,34 +182,44 @@ router.delete(
 router.delete(
   "/:id/comment/:id",
   // идентифицируем пользователя
-  passport.authenticate("jwt", { session: false }),
+  // passport.authenticate("jwt", { session: false }),
+  auth,
   async (req, res) => {
     const id = req.params.id;
 
+    // находим id коммента, который хотим удалить
     const deletedComment = await Comment.find({
       _id: id,
     }).then((res) => {
       return res[0];
     });
 
-    Post.updateOne(
-      { _id: deletedComment.post },
-      {
-        $pullAll: {
-          comments: [{ _id: req.params.id }],
-        },
-      }
-    )
-      .then(() =>
-        Comment.findOneAndDelete({
-          _id: id,
-        })
+    if (deletedComment) {
+      Post.updateOne(
+        { _id: deletedComment.post },
+        {
+          // удаляем коммент из поста в БД (массив comments в посте)
+          $pullAll: {
+            comments: [{ _id: req.params.id }],
+          },
+        }
       )
-      .then(() =>
-        console.log(
-          "Комментарий удален из модели поста и из модели комментариев"
+        // удаляем коммент из модели комментариев в БД
+        .then(() =>
+          Comment.findOneAndDelete({
+            _id: id,
+          })
         )
-      );
+        .then(() =>
+          console.log(
+            "Комментарий удален из модели поста и из модели комментариев"
+          )
+        );
+    } else {
+      return;
+    }
+
+    // находим пост, в котором этот коммент, если комментарий есть
 
     res.send("Комментарий удален из модели поста и из модели комментариев");
   }
