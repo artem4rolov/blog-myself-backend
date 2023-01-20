@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const SECRET = process.env.SECRET;
 
-const validateSignUpInput = require("../../validation/signup.js");
+const validateSignUpInput = require("../../validation/register.js");
 const validateLoginInput = require("../../validation/login.js");
 const User = require("../../models/User");
 
@@ -14,7 +14,7 @@ router.get("/profile", (req, res) => {
 });
 
 // при регистрации пользователя
-router.post("/signup", async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
     // достаем объект ошибок и значение isValid из функции validateLoginInput
     const { errors, isValid } = validateSignUpInput(req.body);
@@ -95,6 +95,9 @@ router.post("/signup", async (req, res) => {
 
 // при авторизации пользователя
 router.post("/login", async (req, res) => {
+  // res.json({
+  //   message: "Hello from login",
+  // });
   try {
     // достаем объект ошибок и значение isValid из функции validateLoginInput
     const { errors, isValid } = validateLoginInput(req.body);

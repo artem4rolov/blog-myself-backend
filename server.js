@@ -58,14 +58,13 @@ app.use(passport.initialize());
 require("./middleware/passport")(passport);
 
 // запросы
-// авторизация, регистрация
 // тест
 app.get("/", (req, res) => {
   res.json({
     message: "Hello from backend",
   });
 });
-
+// авторизация, регистрация
 app.use("/api/users", users);
 // посты - получение, создание, обновление, удаление
 app.use("/api/posts/", require("./routes/api/posts"));

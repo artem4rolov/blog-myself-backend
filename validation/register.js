@@ -1,7 +1,7 @@
 const Validator = require("validator");
 const isEmpty = require("is-empty");
 
-module.exports = validateSignUpInput = (data) => {
+module.exports = validateRegisterInput = (data) => {
   let errors = {};
 
   // достаем данные, которые дал пользователь
