@@ -24,14 +24,14 @@ router.post("/register", async (req, res) => {
     // достаем имя пользователя, почту и пароль из запроса пользователя (при регистрации)
     const { user_name, email, password } = req.body;
     if (!isValid) {
-      return res.status(400).json(errors);
+      return res.status(400).json({ message: errors });
     }
     // если нет ошибок валидации - сначала ищем пользователя в БД MongoDB, вдруг он уже есть в базе
     const oldUser = await User.findOne({ email });
     if (oldUser) {
-      return res
-        .status(409)
-        .send("Такой пользователь уже существует, Вы можете войти");
+      return res.status(409).send({
+        message: "Такой пользователь уже существует, Вы можете войти",
+      });
     }
 
     // шифруем пароль
@@ -98,20 +98,21 @@ router.post("/register", async (req, res) => {
 
 // при авторизации пользователя
 router.post("/login", async (req, res) => {
-  // res.json({
-  //   message: "Hello from login",
-  // });
   try {
     // достаем объект ошибок и значение isValid из функции validateLoginInput
     const { errors, isValid } = validateLoginInput(req.body);
-    if (!isValid) {
-      return res.status(400).json(errors);
+    if (!isValid && errors) {
+      return res.status(400).json({ message: errors });
     }
     // если ошибок валидации нет - достаем логин и пароль из запроса пользователя (req.body)
     const { email, password } = req.body;
     // ищем юзера в БД MongoDB
 
     const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).send({ message: "Такого пользователя не существует" });
+    }
 
     if (user && (await bcrypt.compare(password, user.password))) {
       // создаем токен
