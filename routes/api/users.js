@@ -8,9 +8,12 @@ const SECRET = process.env.SECRET;
 const validateSignUpInput = require("../../validation/register.js");
 const validateLoginInput = require("../../validation/login.js");
 const User = require("../../models/User");
+const verifyToken = require("../../middleware/auth.js");
 
-router.get("/profile", (req, res) => {
-  res.send(req);
+router.get("/profile", verifyToken, (req, res) => {
+  const user = req.user;
+
+  return res.status(201).json(user);
 });
 
 // при регистрации пользователя
