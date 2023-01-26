@@ -30,7 +30,7 @@ router.post("/register", async (req, res) => {
     const oldUser = await User.findOne({ email });
     if (oldUser) {
       return res.status(409).send({
-        message: "Такой пользователь уже существует, Вы можете войти",
+        message: "Такой пользователь уже существует",
       });
     }
 

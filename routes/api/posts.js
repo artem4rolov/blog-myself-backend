@@ -54,7 +54,7 @@ router.post(
   // passport.authenticate("jwt", { session: false }),
   auth,
   (req, res) => {
-    const author = req.user.user_name;
+    const author = req.user.email;
     const post = req.body;
     const { errors, isValid } = validatePostInput(post);
     if (!isValid) {
@@ -78,7 +78,7 @@ router.post(
     // находим id поста, к которому хотим создать комментарий
     const id = req.params.id;
     // запоминаем автора, который создал комменатрий
-    const author = req.user.user_name;
+    const author = req.user.email;
     // создаем комментарий и запоминаем id поста, в котором находится этот комментарий
     const comment = req.body;
     comment.author = author;
@@ -108,7 +108,7 @@ router.patch(
   auth,
   (req, res) => {
     // вытаскиваем автора из запроса
-    const author = req.user.user_name;
+    const author = req.user.email;
     // проверяем на валидацию ошибок при заполнении пользователем полей на фронте
     const { errors, isValid } = validatePostInput(req.body);
     if (!isValid) {
@@ -141,7 +141,7 @@ router.delete(
   auth,
   async (req, res) => {
     // ищем автора поста
-    const author = req.user.user_name;
+    const author = req.user.email;
     // находим id поста, к которому хотим создать комментарий
     const id = req.params.id;
     // ищем пост, который хотим удалить
