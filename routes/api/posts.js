@@ -196,7 +196,6 @@ router.delete(
 router.delete(
   "/:id/comments/:id",
   // идентифицируем пользователя
-  // passport.authenticate("jwt", { session: false }),
   auth,
   async (req, res) => {
     const id = req.params.id;
@@ -223,11 +222,6 @@ router.delete(
           Comment.findOneAndDelete({
             _id: id,
           })
-        )
-        .then(() =>
-          console.log(
-            "Комментарий удален из модели поста и из модели комментариев"
-          )
         );
     } else {
       return;
@@ -235,7 +229,9 @@ router.delete(
 
     // находим пост, в котором этот коммент, если комментарий есть
 
-    res.send("Комментарий удален из модели поста и из модели комментариев");
+    res.status(200).send({
+      message: "Комментарий удален из модели поста и из модели комментариев",
+    });
   }
 );
 
