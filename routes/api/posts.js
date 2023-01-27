@@ -35,8 +35,22 @@ router.get("/:id", async (req, res) => {
 });
 
 // Получение комментов конкретного поста
-router.get("/:id/comment", (req, res) => {
-  res.render("post-comment", { title: "Напишите комментарий" });
+router.get("/:id/comments", async (req, res) => {
+  try {
+    // берем id поста из запроса
+    const id = req.params.id;
+    // находим пост в БД по id
+    const post = await Post.findById(id);
+    // находим все комментарии к данному посту в БД по id поста (в каждом комментарии указан пост, к которому он (комментарий) относится)
+    const comments = await Comment.find({ post: post._id }).then((data) => {
+      return data;
+    });
+    // выводим данные на фронт
+    res.json(comments);
+  } catch (err) {
+    console.log(err);
+    res.status(400).send({ message: err });
+  }
 });
 
 // Фильтр постов по автору
@@ -71,7 +85,7 @@ router.post(
 
 // Создание комментария к посту
 router.post(
-  "/:id/comment",
+  "/:id/comments/create",
   // passport.authenticate("jwt", { session: false }),
   auth,
   async (req, res) => {
@@ -180,7 +194,7 @@ router.delete(
 // Удаление комментария
 // удаление чужого комментария ограничим на фронтенде, если автор комментария не совпадает с именем авторизованного пользователя - кнопка удаления комментария будет недоступна
 router.delete(
-  "/:id/comment/:id",
+  "/:id/comments/:id",
   // идентифицируем пользователя
   // passport.authenticate("jwt", { session: false }),
   auth,
