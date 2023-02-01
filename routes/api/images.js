@@ -1,10 +1,9 @@
 const express = require("express");
 const router = express.Router();
+var imgModel = require("./models/Image");
 
 router.post("/", upload.single("image"), (req, res, next) => {
   var obj = {
-    name: req.body.name,
-    desc: req.body.desc,
     img: {
       data: fs.readFileSync(
         path.join(__dirname + "/uploads/" + req.file.filename)

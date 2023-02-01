@@ -93,10 +93,12 @@ router.post(
     const id = req.params.id;
     // запоминаем автора, который создал комменатрий
     const author = req.user.email;
+    const avatar = req.user.avatar;
     // создаем комментарий и запоминаем id поста, в котором находится этот комментарий
     const comment = req.body;
     comment.author = author;
     comment.post = id;
+    comment.userImg = avatar;
 
     const newComment = new Comment(comment);
     // save comment

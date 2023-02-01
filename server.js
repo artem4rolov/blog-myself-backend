@@ -14,29 +14,12 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 // библиотека для расшифровки объекта запроса пользователя request (req.body)
 const bodyParser = require("body-parser");
-//
-const path = require("path");
+
 // достаем пути запросов для пользователей
 const users = require("./routes/api/users");
 // учим наше приложение читать JSON - формат данных (который в req.body)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-
-// модель изображений
-var imgModel = require("./models/Image");
-// multer - библиотека для загрузки файлов
-var multer = require("multer");
-// настраиваем хранилище для обработки изображений
-var storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads");
-  },
-  filename: (req, file, cb) => {
-    cb(null, file.fieldname + "-" + Date.now());
-  },
-});
-// загружаем наши файлы в хранилище
-var upload = multer({ storage: storage });
 
 // достаем переменную окружения
 const MONGO_URI = process.env.MONGO_URI;
@@ -53,9 +36,9 @@ mongoose
 // mongoose.set("useFindAndModify", false);
 // mongoose.Promise = global.Promise;
 
-// используем данные jwt-токена авторизации пользователя
-app.use(passport.initialize());
-require("./middleware/passport")(passport);
+// // используем данные jwt-токена авторизации пользователя
+// app.use(passport.initialize());
+// require("./middleware/passport")(passport);
 
 // запросы
 // тест
@@ -64,6 +47,7 @@ app.get("/", (req, res) => {
     message: "Hello from backend",
   });
 });
+app.use("/public", express.static("public"));
 // авторизация, регистрация
 app.use("/api/users", users);
 // посты - получение, создание, обновление, удаление

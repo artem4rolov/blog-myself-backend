@@ -20,6 +20,10 @@ const comment = {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Post",
   },
+  userImg: {
+    type: String,
+    required: false,
+  },
 };
 
 const commentSchema = new Schema(comment);
