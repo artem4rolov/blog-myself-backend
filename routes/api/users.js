@@ -13,10 +13,12 @@ const validateSignUpInput = require("../../validation/register.js");
 const validateLoginInput = require("../../validation/login.js");
 const validateUpdateProfileInput = require("../../validation/updateProfile.js");
 const User = require("../../models/User");
+const Post = require("../../models/Post");
+const Comment = require("../../models/Comment");
 const verifyToken = require("../../middleware/auth.js");
 
 // директория с автарами пользователей
-const DIR = "./public/";
+const DIR = "./assets/users/";
 
 // создаем путь к хранилищу аватаров
 const storage = multer.diskStorage({
@@ -51,9 +53,11 @@ var upload = multer({
 });
 
 // обновление токена авторизации
-router.get("/profile", verifyToken, (req, res) => {
-  const user = req.user;
-  return res.status(201).json(user);
+router.get("/profile", verifyToken, async (req, res) => {
+  const { email } = req.user;
+  // ищем юзера в БД по email и возвращаем на клиент
+  const user = await User.findOne({ email });
+  return res.status(200).json(user);
 });
 
 // при регистрации пользователя
@@ -82,15 +86,20 @@ router.post("/register", upload.single("avatar"), async (req, res) => {
     // создаем пользователя в БД
     const user = await User.create({
       // если аватар загружен пользователем - добавляем его к полю avatar, если нет - null
-      avatar: req.file ? url + "/public/" + req.file.filename : null,
-      user_name,
+      avatar: req.file ? url + "/assets/users/" + req.file.filename : null,
+      user_name: user_name,
       email: email.toLowerCase(),
       password: encryptedPassword,
     });
 
     // создаем токен
     const token = jwt.sign(
-      { user_id: user._id, email, user_name, avatar: user.avatar },
+      {
+        user_id: user._id,
+        email: user.email,
+        user_name: user.user_name,
+        avatar: user.avatar,
+      },
       SECRET,
       {
         expiresIn: 3600,
@@ -99,6 +108,7 @@ router.post("/register", upload.single("avatar"), async (req, res) => {
 
     // сохраняем токен пользователя
     user.token = token;
+    user.save();
 
     res.status(201).json(user);
   } catch (err) {
@@ -115,7 +125,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: errors });
     }
     // если ошибок валидации нет - достаем логин и пароль из запроса пользователя (req.body)
-    const { email, password, avatar, user_name } = req.body;
+    const { email, password, user_name } = req.body;
     // ищем юзера в БД MongoDB
 
     const user = await User.findOne({ email });
@@ -129,8 +139,8 @@ router.post("/login", async (req, res) => {
       const newToken = jwt.sign(
         {
           user_id: user._id,
-          email,
-          user_name,
+          email: user.email,
+          user_name: user.user_name,
           avatar: user.avatar,
         },
         SECRET,
@@ -161,6 +171,7 @@ router.patch(
   upload.single("avatar"),
   async (req, res) => {
     try {
+      // код со сменой имени закомментил
       // достаем объект ошибок и значение isValid из функции validateLoginInput
       const { errors, isValid } = validateUpdateProfileInput(req.body);
       if (!isValid && errors) {
@@ -177,12 +188,14 @@ router.patch(
       // ищем пользователя в БД
       const user = await User.findOne({ email });
       // достаем старый аватар пользователя, оставляем только название файла, он понадобится в случае обновления аватара, чтобы удалить старый файл из хранилища
-      const oldPhoto = user.avatar ? user.avatar.split("/public/")[1] : null;
+      const oldPhoto = user.avatar
+        ? user.avatar.split("/assets/users/")[1]
+        : null;
 
       // Если есть старое фото и новое загруженное (польлзователь хочет поменять свой аватар)
       // удаляем старое фото из директории public
       if (oldPhoto && req.file) {
-        const oldPath = path.join("public/", oldPhoto);
+        const oldPath = path.join("assets/users/", oldPhoto);
         // удаляем старый аватар, если новый загружен пользователем
         fs.unlink(oldPath, (err) => {
           if (err) {
@@ -196,10 +209,12 @@ router.patch(
       const newToken = jwt.sign(
         {
           user_id: req.user._id,
-          email,
-          user_name,
+          email: req.user.email,
+          user_name: user_name,
           // в новый токен также помещаем наш новый аватар, если он есть, если нет - оставляем старый
-          avatar: req.file ? url + "/public/" + req.file.filename : user.avatar,
+          avatar: req.file
+            ? url + "/assets/users/" + req.file.filename
+            : user.avatar,
         },
         SECRET,
         {
@@ -212,11 +227,12 @@ router.patch(
         { email },
         {
           $set: {
+            // имя пользователя - значение из запроса (req.body)
             user_name: user_name,
             token: newToken,
             // в новый токен также помещаем наш новый аватар, если он есть, если нет - оставляем старый
             avatar: req.file
-              ? url + "/public/" + req.file.filename
+              ? url + "/assets/users/" + req.file.filename
               : user.avatar,
           },
         }, // возвращаем новый документ в БД
@@ -227,6 +243,33 @@ router.patch(
           res.status(400).send({ message: "Ошибка при обновлении профиля" }),
             console.log(err);
         });
+
+      // обновляем автора во всех комментариях этого автора
+      await Comment.find({ author: req.user.user_name })
+        .then((comments) => {
+          comments.forEach((comment) => {
+            if (comment.author === req.user.user_name || user.user_name) {
+              comment.author = user_name;
+              comment.userImg = req.file
+                ? url + "/assets/users/" + req.file.filename
+                : req.user.avatar;
+            }
+            comment.save();
+          });
+        })
+        .then(() => {});
+
+      // обновляем автора во всех постах автора
+      await Post.find({ author: req.user.user_name })
+        .then((posts) => {
+          posts.forEach((post) => {
+            if (post.author === req.user.user_name) {
+              post.author = user_name;
+            }
+            post.save();
+          });
+        })
+        .then(() => {});
     } catch (err) {
       console.log(err);
     }

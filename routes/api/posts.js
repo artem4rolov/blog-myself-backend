@@ -1,10 +1,50 @@
 const express = require("express");
 const router = express.Router();
+const User = require("../../models/User");
 const Post = require("../../models/Post");
 const Comment = require("../../models/Comment");
-const passport = require("passport");
 const validatePostInput = require("../../validation/post");
-const auth = require("../../middleware/auth");
+const verifyToken = require("../../middleware/auth.js");
+
+const multer = require("multer");
+const uuidv4 = require("uuid/v4");
+const path = require("path");
+const fs = require("fs");
+
+// директория с ОБОЖКАМИ постов
+const DIR = "./assets/posts/";
+
+// создаем путь к хранилищу аватаров
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, DIR);
+  },
+  filename: (req, file, cb) => {
+    const fileName = file.originalname.toLowerCase().split(" ").join("-");
+    cb(null, uuidv4() + "-" + fileName);
+  },
+});
+
+// функция загрузки аватара в хранилище
+var upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype == "image/png" ||
+      file.mimetype == "image/jpg" ||
+      file.mimetype == "image/jpeg"
+    ) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+      return cb(
+        new Error(
+          "Допускаются только форматы .png, .jpg and .jpeg для аватара!"
+        )
+      );
+    }
+  },
+});
 
 // получение всех постов
 // доступно любому пользователю
@@ -65,21 +105,29 @@ router.get("/author/:author", (req, res) => {
 // Создание поста
 router.post(
   "/create",
+  upload.single("cover"),
   // passport.authenticate("jwt", { session: false }),
-  auth,
-  (req, res) => {
-    const author = req.user.email;
-    const post = req.body;
-    const { errors, isValid } = validatePostInput(post);
-    if (!isValid) {
-      return res.status(400).json(errors);
+  verifyToken,
+  async (req, res) => {
+    try {
+      const url = req.protocol + "://" + req.get("host");
+
+      const { user_name } = req.user;
+      const post = req.body;
+      const { errors, isValid } = validatePostInput(post);
+      if (!isValid) {
+        return res.status(400).json(errors);
+      }
+      post.author = user_name;
+      post.cover = req.file ? url + "/assets/posts/" + req.file.filename : null;
+      const newPost = new Post(post);
+      newPost
+        .save()
+        .then((doc) => res.json(doc))
+        .catch((err) => console.log({ create: "Ошибка при создании поста" }));
+    } catch (err) {
+      console.log(err);
     }
-    post.author = author;
-    const newPost = new Post(post);
-    newPost
-      .save()
-      .then((doc) => res.json(doc))
-      .catch((err) => console.log({ create: "Ошибка при создании поста" }));
   }
 );
 
@@ -87,33 +135,38 @@ router.post(
 router.post(
   "/:id/comments/create",
   // passport.authenticate("jwt", { session: false }),
-  auth,
+  verifyToken,
   async (req, res) => {
-    // находим id поста, к которому хотим создать комментарий
-    const id = req.params.id;
-    // запоминаем автора, который создал комменатрий
-    const author = req.user.email;
-    const avatar = req.user.avatar;
-    // создаем комментарий и запоминаем id поста, в котором находится этот комментарий
-    const comment = req.body;
-    comment.author = author;
-    comment.post = id;
-    comment.userImg = avatar;
+    try {
+      // находим id поста, к которому хотим создать комментарий
+      const id = req.params.id;
 
-    const newComment = new Comment(comment);
-    // save comment
-    newComment.save();
-    // get this particular post
-    const postRelated = await Post.findById(id);
-    // push the comment into the post.comments array
-    postRelated.comments.push(newComment);
-    // save and redirect...
-    postRelated
-      .save()
-      .then((doc) => res.json(doc))
-      .catch((err) =>
-        console.log({ create: "Ошибка при создании комментария" })
-      );
+      // запоминаем автора, который создал комменатрий
+      const author = req.user.user_name;
+      const avatar = req.user.avatar;
+
+      // создаем комментарий и запоминаем id поста, в котором находится этот комментарий
+      const comment = req.body;
+      comment.author = author;
+      comment.post = id;
+      comment.userImg = avatar;
+      const newComment = new Comment(comment);
+      // сохраняем коммент
+      newComment.save();
+      // ищем пост, в который будем пихать новый комментарий
+      const postRelated = await Post.findById(id);
+      // пихаем комментарий в найденный пост
+      postRelated.comments.push(newComment);
+      // сохраняем пост
+      postRelated
+        .save()
+        .then((doc) => res.json(doc))
+        .catch((err) =>
+          console.log({ create: "Ошибка при создании комментария" })
+        );
+    } catch (err) {
+      console.log(err);
+    }
   }
 );
 
@@ -121,10 +174,10 @@ router.post(
 router.patch(
   "/update/:id",
   // passport.authenticate("jwt", { session: false }),
-  auth,
+  verifyToken,
   (req, res) => {
     // вытаскиваем автора из запроса
-    const author = req.user.email;
+    const author = req.user.user_name;
     // проверяем на валидацию ошибок при заполнении пользователем полей на фронте
     const { errors, isValid } = validatePostInput(req.body);
     if (!isValid) {
@@ -154,10 +207,10 @@ router.delete(
   "/delete/:id",
   // идентифицируем пользователя
   // passport.authenticate("jwt", { session: false }),
-  auth,
+  verifyToken,
   async (req, res) => {
     // ищем автора поста
-    const author = req.user.email;
+    const author = req.user.user_name;
     // находим id поста, к которому хотим создать комментарий
     const id = req.params.id;
     // ищем пост, который хотим удалить
@@ -173,7 +226,7 @@ router.delete(
             _id: comment,
           })
             // затем удаляем сам пост, в котором были эти комментарии
-            .then((res) =>
+            .then(() =>
               Post.findByIdAndDelete({
                 author,
                 _id: req.params.id,
@@ -198,7 +251,7 @@ router.delete(
 router.delete(
   "/:id/comments/:id",
   // идентифицируем пользователя
-  auth,
+  verifyToken,
   async (req, res) => {
     const id = req.params.id;
 

@@ -1,6 +1,7 @@
 const Validator = require("validator");
 const isEmpty = require("is-empty");
 
+// код с возможностью смены имени закомментирован
 module.exports = validateUpdateProfileInput = (data) => {
   let errors = {};
 

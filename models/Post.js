@@ -10,6 +10,10 @@ const post = {
     type: String,
     required: true,
   },
+  cover: {
+    type: String,
+    required: false,
+  },
   viewCount: {
     type: Number,
     default: 0,

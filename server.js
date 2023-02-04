@@ -33,13 +33,6 @@ mongoose
   .then(() => console.log("MongoDB ОK"))
   .catch((err) => console.log(err));
 
-// mongoose.set("useFindAndModify", false);
-// mongoose.Promise = global.Promise;
-
-// // используем данные jwt-токена авторизации пользователя
-// app.use(passport.initialize());
-// require("./middleware/passport")(passport);
-
 // запросы
 // тест
 app.get("/", (req, res) => {
@@ -47,7 +40,8 @@ app.get("/", (req, res) => {
     message: "Hello from backend",
   });
 });
-app.use("/public", express.static("public"));
+app.use("/assets/users/", express.static("assets/users/"));
+app.use("/assets/posts/", express.static("assets/posts/"));
 // авторизация, регистрация
 app.use("/api/users", users);
 // посты - получение, создание, обновление, удаление
