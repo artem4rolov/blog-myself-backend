@@ -26,10 +26,7 @@ const MONGO_URI = process.env.MONGO_URI;
 // подключаем бд MongoDB
 mongoose
   // используем переменную окружения
-  .connect(
-    "mongodb+srv://admin:12345@cluster0.ptyjg7b.mongodb.net/?retryWrites=true&w=majority",
-    { useNewUrlParser: true }
-  )
+  .connect(MONGO_URI, { useNewUrlParser: true })
   .then(() => console.log("MongoDB ОK"))
   .catch((err) => console.log(err));
 
@@ -49,7 +46,7 @@ app.use("/api/posts/", require("./routes/api/posts"));
 
 // создаем порт для хоста
 const PORT = process.env.PORT || 5000;
-// запускаем сервер на порту localHost:2222
+// запускаем сервер на порту localHost:5000
 app.listen(PORT, () => {
   console.log("Сервер запущен на порту " + PORT);
 });
