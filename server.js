@@ -27,7 +27,8 @@ const MONGO_URI = process.env.MONGO_URI;
 mongoose
   // используем переменную окружения
   .connect(
-    "mongodb+srv://admin:12345@cluster0.ptyjg7b.mongodb.net/?retryWrites=true&w=majority",
+    "mongodb+srv://admin:12345@cluster0.ptyjg7b.mongodb.net/?retryWrites=true&w=majority" ||
+      MONGO_URI,
     { useNewUrlParser: true }
   )
   .then(() => console.log("MongoDB ОK"))
