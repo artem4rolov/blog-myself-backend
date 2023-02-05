@@ -10,8 +10,7 @@ app.use(cors());
 require("dotenv").config();
 // библиотека для подключения к MongoDB
 const mongoose = require("mongoose");
-// библиотека для работа с jwt-токеном авторизации пользователя
-const passport = require("passport");
+
 // библиотека для расшифровки объекта запроса пользователя request (req.body)
 const bodyParser = require("body-parser");
 
@@ -21,12 +20,10 @@ const users = require("./routes/api/users");
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// достаем переменную окружения
-const MONGO_URI = process.env.MONGO_URI;
 // подключаем бд MongoDB
 mongoose
   // используем переменную окружения
-  .connect(MONGO_URI, { useNewUrlParser: true })
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true })
   .then(() => console.log("MongoDB ОK"))
   .catch((err) => console.log(err));
 
