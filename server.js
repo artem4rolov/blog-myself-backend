@@ -41,9 +41,7 @@ app.use("/api/users", users);
 // посты - получение, создание, обновление, удаление
 app.use("/api/posts/", require("./routes/api/posts"));
 
-// создаем порт для хоста
-const PORT = process.env.PORT || 5000;
 // запускаем сервер на порту localHost:2222
-app.listen(PORT, () => {
-  console.log("Сервер запущен на порту " + PORT);
+app.listen(process.env.PORT || 5000, () => {
+  console.log("Сервер запущен");
 });
