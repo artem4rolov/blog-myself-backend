@@ -14,7 +14,7 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 // библиотека для расшифровки объекта запроса пользователя request (req.body)
 const bodyParser = require("body-parser");
-
+const SECRET = "42";
 // достаем пути запросов для пользователей
 const users = require("./routes/api/users");
 // учим наше приложение читать JSON - формат данных (который в req.body)
