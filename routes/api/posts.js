@@ -8,43 +8,6 @@ const verifyToken = require("../../middleware/auth.js");
 
 const multer = require("multer");
 const uuidv4 = require("uuid/v4");
-const path = require("path");
-const fs = require("fs");
-
-// директория с ОБОЖКАМИ постов
-const DIR = "./assets/posts/";
-
-// создаем путь к хранилищу аватаров
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, DIR);
-  },
-  filename: (req, file, cb) => {
-    const fileName = file.originalname.toLowerCase().split(" ").join("-");
-    cb(null, uuidv4() + "-" + fileName);
-  },
-});
-
-// функция загрузки аватара в хранилище
-var upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype == "image/png" ||
-      file.mimetype == "image/jpg" ||
-      file.mimetype == "image/jpeg"
-    ) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-      return cb(
-        new Error(
-          "Допускаются только форматы .png, .jpg and .jpeg для аватара!"
-        )
-      );
-    }
-  },
-});
 
 // получение всех постов
 // доступно любому пользователю
@@ -103,33 +66,27 @@ router.get("/author/:author", (req, res) => {
 });
 
 // Создание поста
-router.post(
-  "/create",
-  upload.single("cover"),
-  // passport.authenticate("jwt", { session: false }),
-  verifyToken,
-  async (req, res) => {
-    try {
-      const url = req.protocol + "://" + req.get("host");
-
-      const { user_name } = req.user;
-      const post = req.body;
-      const { errors, isValid } = validatePostInput(post);
-      if (!isValid) {
-        return res.status(400).json(errors);
-      }
-      post.author = user_name;
-      post.cover = req.file ? url + "/assets/posts/" + req.file.filename : null;
-      const newPost = new Post(post);
-      newPost
-        .save()
-        .then((doc) => res.json(doc))
-        .catch((err) => console.log({ create: "Ошибка при создании поста" }));
-    } catch (err) {
-      console.log(err);
+router.post("/create", verifyToken, async (req, res) => {
+  try {
+    const { user_name } = req.user;
+    const post = req.body;
+    const { errors, isValid } = validatePostInput(post);
+    if (!isValid) {
+      return res.status(400).json(errors);
     }
+    post.author = user_name;
+    post.cover = req.body.cover;
+    post.title = req.body.title;
+    post.text = req.body.text;
+    const newPost = new Post(post);
+    newPost
+      .save()
+      .then((doc) => res.json(doc))
+      .catch((err) => console.log({ create: "Ошибка при создании поста" }));
+  } catch (err) {
+    console.log(err);
   }
-);
+});
 
 // Создание комментария к посту
 router.post(

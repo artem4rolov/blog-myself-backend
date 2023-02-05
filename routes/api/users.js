@@ -129,10 +129,10 @@ router.patch("/editProfile", verifyToken, async (req, res) => {
     // console.log(req);
     // код со сменой имени закомментил
     // достаем объект ошибок и значение isValid из функции validateLoginInput
-    // const { errors, isValid } = validateUpdateProfileInput(req.body);
-    // if (!isValid && errors) {
-    //   return res.status(400).json({ message: errors });
-    // }
+    const { errors, isValid } = validateUpdateProfileInput(req.body);
+    if (!isValid && errors) {
+      return res.status(400).json({ message: errors });
+    }
     // если ошибок валидации нет - достаем никнейм из запроса пользователя (req.body)
     const { user_name, avatar } = req.body;
     // далее достаем почту пользователя, чтобы найти его (пользователя) в БД MongoDB
