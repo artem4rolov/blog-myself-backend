@@ -1,9 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
-const uuidv4 = require("uuid/v4");
-const path = require("path");
-const fs = require("fs");
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -17,41 +13,6 @@ const Post = require("../../models/Post");
 const Comment = require("../../models/Comment");
 const verifyToken = require("../../middleware/auth.js");
 
-// директория с автарами пользователей
-const DIR = "./assets/users/";
-
-// создаем путь к хранилищу аватаров
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, DIR);
-  },
-  filename: (req, file, cb) => {
-    const fileName = file.originalname.toLowerCase().split(" ").join("-");
-    cb(null, uuidv4() + "-" + fileName);
-  },
-});
-
-// функция загрузки аватара в хранилище
-var upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype == "image/png" ||
-      file.mimetype == "image/jpg" ||
-      file.mimetype == "image/jpeg"
-    ) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-      return cb(
-        new Error(
-          "Допускаются только форматы .png, .jpg and .jpeg для аватара!"
-        )
-      );
-    }
-  },
-});
-
 // обновление токена авторизации
 router.get("/profile", verifyToken, async (req, res) => {
   const { email } = req.user;
@@ -61,14 +22,12 @@ router.get("/profile", verifyToken, async (req, res) => {
 });
 
 // при регистрации пользователя
-router.post("/register", upload.single("avatar"), async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
-    const url = req.protocol + "://" + req.get("host");
-
     // достаем объект ошибок и значение isValid из функции validateLoginInput
     const { errors, isValid } = validateSignUpInput(req.body);
     // достаем имя пользователя, почту и пароль из запроса пользователя (при регистрации)
-    const { user_name, email, password } = req.body;
+    const { user_name, email, password, avatar } = req.body;
     if (!isValid) {
       return res.status(400).json({ message: errors });
     }
@@ -86,7 +45,7 @@ router.post("/register", upload.single("avatar"), async (req, res) => {
     // создаем пользователя в БД
     const user = await User.create({
       // если аватар загружен пользователем - добавляем его к полю avatar, если нет - null
-      avatar: req.file ? url + "/assets/users/" + req.file.filename : null,
+      avatar: avatar,
       user_name: user_name,
       email: email.toLowerCase(),
       password: encryptedPassword,
@@ -165,115 +124,85 @@ router.post("/login", async (req, res) => {
 });
 
 // при обновлении профиля пользователя
-router.patch(
-  "/editProfile",
-  verifyToken,
-  upload.single("avatar"),
-  async (req, res) => {
-    try {
-      // код со сменой имени закомментил
-      // достаем объект ошибок и значение isValid из функции validateLoginInput
-      const { errors, isValid } = validateUpdateProfileInput(req.body);
-      if (!isValid && errors) {
-        return res.status(400).json({ message: errors });
+router.patch("/editProfile", verifyToken, async (req, res) => {
+  try {
+    // console.log(req);
+    // код со сменой имени закомментил
+    // достаем объект ошибок и значение isValid из функции validateLoginInput
+    // const { errors, isValid } = validateUpdateProfileInput(req.body);
+    // if (!isValid && errors) {
+    //   return res.status(400).json({ message: errors });
+    // }
+    // если ошибок валидации нет - достаем никнейм из запроса пользователя (req.body)
+    const { user_name, avatar } = req.body;
+    // далее достаем почту пользователя, чтобы найти его (пользователя) в БД MongoDB
+    const { email } = req.user;
+
+    // ищем пользователя в БД
+    const user = await User.findOne({ email });
+
+    // создаем новый токен
+    const newToken = jwt.sign(
+      {
+        user_id: req.user._id,
+        email: req.user.email,
+        user_name: user_name,
+        // в новый токен также помещаем наш новый аватар, если он есть, если нет - оставляем старый
+        avatar: avatar,
+      },
+      SECRET,
+      {
+        expiresIn: 3600,
       }
-      // путь к нашему бэкенду, для изображений
-      const url = req.protocol + "://" + req.get("host");
+    );
 
-      // если ошибок валидации нет - достаем никнейм из запроса пользователя (req.body)
-      const { user_name } = req.body;
-      // далее достаем почту пользователя, чтобы найти его (пользователя) в БД MongoDB
-      const { email } = req.user;
-
-      // ищем пользователя в БД
-      const user = await User.findOne({ email });
-      // достаем старый аватар пользователя, оставляем только название файла, он понадобится в случае обновления аватара, чтобы удалить старый файл из хранилища
-      const oldPhoto = user.avatar
-        ? user.avatar.split("/assets/users/")[1]
-        : null;
-
-      // Если есть старое фото и новое загруженное (польлзователь хочет поменять свой аватар)
-      // удаляем старое фото из директории public
-      if (oldPhoto && req.file) {
-        const oldPath = path.join("assets/users/", oldPhoto);
-        // удаляем старый аватар, если новый загружен пользователем
-        fs.unlink(oldPath, (err) => {
-          if (err) {
-            console.error(err);
-            return;
-          }
-        });
-      }
-
-      // создаем новый токен
-      const newToken = jwt.sign(
-        {
-          user_id: req.user._id,
-          email: req.user.email,
+    // теперь обновляем поля с именем и аватаром пользователя
+    await User.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          // имя пользователя - значение из запроса (req.body)
           user_name: user_name,
+          token: newToken,
           // в новый токен также помещаем наш новый аватар, если он есть, если нет - оставляем старый
-          avatar: req.file
-            ? url + "/assets/users/" + req.file.filename
-            : user.avatar,
+          avatar: avatar,
         },
-        SECRET,
-        {
-          expiresIn: 3600,
-        }
-      );
+      }, // возвращаем новый документ в БД
+      { new: true }
+    )
+      .then((doc) => res.status(200).json(doc))
+      .catch((err) => {
+        res.status(400).send({ message: "Ошибка при обновлении профиля" }),
+          console.log(err);
+      });
 
-      // теперь обновляем поля с именем и аватаром пользователя
-      await User.findOneAndUpdate(
-        { email },
-        {
-          $set: {
-            // имя пользователя - значение из запроса (req.body)
-            user_name: user_name,
-            token: newToken,
-            // в новый токен также помещаем наш новый аватар, если он есть, если нет - оставляем старый
-            avatar: req.file
-              ? url + "/assets/users/" + req.file.filename
-              : user.avatar,
-          },
-        }, // возвращаем новый документ в БД
-        { new: true }
-      )
-        .then((doc) => res.status(200).json(doc))
-        .catch((err) => {
-          res.status(400).send({ message: "Ошибка при обновлении профиля" }),
-            console.log(err);
+    // обновляем автора во всех комментариях этого автора
+    await Comment.find({ author: req.user.user_name })
+      .then((comments) => {
+        comments.forEach((comment) => {
+          if (comment.author === req.user.user_name || user.user_name) {
+            comment.author = user_name;
+            comment.userImg = avatar;
+          }
+          comment.save();
         });
+      })
+      .then(() => {});
 
-      // обновляем автора во всех комментариях этого автора
-      await Comment.find({ author: req.user.user_name })
-        .then((comments) => {
-          comments.forEach((comment) => {
-            if (comment.author === req.user.user_name || user.user_name) {
-              comment.author = user_name;
-              comment.userImg = req.file
-                ? url + "/assets/users/" + req.file.filename
-                : req.user.avatar;
-            }
-            comment.save();
-          });
-        })
-        .then(() => {});
-
-      // обновляем автора во всех постах автора
-      await Post.find({ author: req.user.user_name })
-        .then((posts) => {
-          posts.forEach((post) => {
-            if (post.author === req.user.user_name) {
-              post.author = user_name;
-            }
-            post.save();
-          });
-        })
-        .then(() => {});
-    } catch (err) {
-      console.log(err);
-    }
+    // обновляем автора во всех постах автора
+    await Post.find({ author: req.user.user_name })
+      .then((posts) => {
+        posts.forEach((post) => {
+          if (post.author === req.user.user_name) {
+            post.author = user_name;
+          }
+          post.save();
+        });
+      })
+      .then(() => {});
+  } catch (err) {
+    console.log(err);
   }
-);
+});
 
 module.exports = router;
