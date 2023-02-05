@@ -14,17 +14,22 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 // библиотека для расшифровки объекта запроса пользователя request (req.body)
 const bodyParser = require("body-parser");
-const SECRET = "42";
+
 // достаем пути запросов для пользователей
 const users = require("./routes/api/users");
 // учим наше приложение читать JSON - формат данных (который в req.body)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// достаем переменную окружения
+const MONGO_URI = process.env.MONGO_URI;
 // подключаем бд MongoDB
 mongoose
   // используем переменную окружения
-  .connect(process.env.MONGO_URI)
+  .connect(
+    "mongodb+srv://admin:12345@cluster0.ptyjg7b.mongodb.net/?retryWrites=true&w=majority",
+    { useNewUrlParser: true }
+  )
   .then(() => console.log("MongoDB ОK"))
   .catch((err) => console.log(err));
 
@@ -42,7 +47,9 @@ app.use("/api/users", users);
 // посты - получение, создание, обновление, удаление
 app.use("/api/posts/", require("./routes/api/posts"));
 
-// запускаем сервер на порту localHost:5000
-app.listen(process.env.PORT || 5000, () => {
-  console.log("Сервер запущен");
+// создаем порт для хоста
+const PORT = process.env.PORT || 5000;
+// запускаем сервер на порту localHost:2222
+app.listen(PORT, () => {
+  console.log("Сервер запущен на порту " + PORT);
 });
