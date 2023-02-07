@@ -1,0 +1,20 @@
+{
+  "folders": [
+	{
+		"path": "../../todo-v-2.0"
+	},
+	{
+		"path": "../../todos"
+	},
+	{
+		"path": "../../chat-firebase"
+	},
+	{
+		"path": "."
+	}
+],
+  "settings": {
+    "liveServer.settings.multiRootWorkspaceName": "1",
+    "diffEditor.maxComputationTime": 1000
+  }
+}

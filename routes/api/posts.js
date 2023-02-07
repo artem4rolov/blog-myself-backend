@@ -57,13 +57,13 @@ router.get("/:id/comments", async (req, res) => {
 });
 
 // Фильтр постов по автору
-router.get("/author/:author", (req, res) => {
-  Post.find({ author: req.params.author })
-    .then((posts) => res.status(200).json(posts))
-    .catch((err) =>
-      res.status(400).json({ author: "Ошибка поиска потов по автору" })
-    );
-});
+// router.get("/author/:author", (req, res) => {
+//   Post.find({ author: req.params.author })
+//     .then((posts) => res.status(200).json(posts))
+//     .catch((err) =>
+//       res.status(400).json({ author: "Ошибка поиска потов по автору" })
+//     );
+// });
 
 // Создание поста
 router.post("/create", verifyToken, async (req, res) => {
@@ -166,40 +166,37 @@ router.delete(
   // passport.authenticate("jwt", { session: false }),
   verifyToken,
   async (req, res) => {
-    // ищем автора поста
-    const author = req.user.user_name;
-    // находим id поста, к которому хотим создать комментарий
-    const id = req.params.id;
-    // ищем пост, который хотим удалить
-    Post.findById({
-      _id: id,
-    }).then((res) => {
-      if (res.comments.length > 0) {
-        // перебираем массив с комментариями в посте
-        res.comments.forEach((comment) =>
-          // в этом массиве, в каждом комментарии находится id комментария
-          // теперь идем в модель Comment, находим каждый комментарий по id (comment) и удаляем его
-          Comment.findByIdAndDelete({
-            _id: comment,
-          })
-            // затем удаляем сам пост, в котором были эти комментарии
-            .then(() =>
-              Post.findByIdAndDelete({
-                author,
-                _id: req.params.id,
-              })
-            )
-            .then(() => console.log("Пост с комментариями удален"))
-            .catch((err) => console.log(err))
-        );
-      } else {
-        Post.findByIdAndDelete({
-          author,
-          _id: req.params.id,
-        }).then(() => console.log("Пост удален"));
-      }
-    });
-    res.send("Пост удален");
+    try {
+      // ищем автора поста
+      const author = req.user.user_name;
+      // находим id поста, к которому хотим создать комментарий
+      const id = req.params.id;
+      // ищем пост, который хотим удалить
+
+      await Post.findById({
+        _id: id,
+      }).then((res) => {
+        if (res.comments && res.comments.length > 0) {
+          // перебираем массив с комментариями в посте
+          res.comments.forEach((comment) =>
+            // в этом массиве, в каждом комментарии находится id комментария
+            // теперь идем в модель Comment, находим каждый комментарий по id (comment) и удаляем его
+            Comment.findByIdAndDelete({
+              _id: comment,
+            })
+          );
+        } else if (!res.comments || res.comments == null) {
+          return;
+        }
+      });
+      await Post.findByIdAndDelete({
+        author,
+        _id: req.params.id,
+      }).then(() => console.log("Пост удален"));
+      res.json("Пост удален");
+    } catch (err) {
+      console.log(err);
+    }
   }
 );
 

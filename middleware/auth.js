@@ -7,13 +7,13 @@ const verifyToken = (req, res, next) => {
   const token = req.body.token || req.query.token || req.headers["token"];
 
   if (!token) {
-    return res.status(403).send("Токен авторизации не получен");
+    return res.status(403).json({ message: "Токен авторизации не получен" });
   }
   try {
     const decoded = jwt.verify(token, SECRET);
     req.user = decoded;
   } catch (err) {
-    return res.status(401).send("Неверный токен");
+    return res.status(401).json({ message: "Неверный токен" });
   }
   return next();
 };

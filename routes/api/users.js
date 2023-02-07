@@ -15,10 +15,27 @@ const verifyToken = require("../../middleware/auth.js");
 
 // обновление токена авторизации
 router.get("/profile", verifyToken, async (req, res) => {
-  const { email } = req.user;
-  // ищем юзера в БД по email и возвращаем на клиент
-  const user = await User.findOne({ email });
-  return res.status(200).json(user);
+  try {
+    const { email } = req.user;
+    // ищем юзера в БД по email и возвращаем на клиент
+    const user = await User.findOne({ email });
+    return res.status(200).json(user);
+  } catch (err) {
+    res.json({ message: err });
+  }
+});
+
+// поиск автора по никнейму (открывается страница с информацией о пользователе)
+router.get("/profile/:user_name", async (req, res) => {
+  try {
+    // const { user_name } = req.params.user_name;
+    // ищем юзера в БД по user_name и возвращаем на клиент
+    await User.find({ user_name: req.params.user_name }).then((user) =>
+      res.status(200).json(user)
+    );
+  } catch (err) {
+    res.json({ message: err });
+  }
 });
 
 // при регистрации пользователя
@@ -148,7 +165,7 @@ router.patch("/editProfile", verifyToken, async (req, res) => {
         email: req.user.email,
         user_name: user_name,
         // в новый токен также помещаем наш новый аватар, если он есть, если нет - оставляем старый
-        avatar: avatar,
+        avatar: avatar !== null ? avatar : req.user.avatar,
       },
       SECRET,
       {
@@ -165,7 +182,7 @@ router.patch("/editProfile", verifyToken, async (req, res) => {
           user_name: user_name,
           token: newToken,
           // в новый токен также помещаем наш новый аватар, если он есть, если нет - оставляем старый
-          avatar: avatar,
+          avatar: avatar !== null ? avatar : req.user.avatar,
         },
       }, // возвращаем новый документ в БД
       { new: true }
@@ -182,7 +199,7 @@ router.patch("/editProfile", verifyToken, async (req, res) => {
         comments.forEach((comment) => {
           if (comment.author === req.user.user_name || user.user_name) {
             comment.author = user_name;
-            comment.userImg = avatar;
+            comment.userImg = avatar !== null ? avatar : req.user.avatar;
           }
           comment.save();
         });
