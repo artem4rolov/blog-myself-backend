@@ -25,6 +25,65 @@ router.get("/profile", verifyToken, async (req, res) => {
   }
 });
 
+// добавляем выбранный пост в избранную коллекцию постов пользователя
+router.post("/addFavorite/:id", verifyToken, async (req, res) => {
+  try {
+    // находим пост в БД, который хотим добавить в избранную коллекцию постов пользователя
+    const { id } = req.body;
+    // console.log(id);
+
+    // находим текущего пользователя
+    await User.findOne({ email: req.user.email })
+      .then((user) => {
+        // пихаем туда id избранного поста
+        user.favorites.push(id);
+        // возвращаем из промиса объект юзера
+        return user;
+      })
+      .then((user) => {
+        // сохраняем юзера
+        user.save();
+        // возвращаем избранную коллекцию юзера
+        return user.favorites;
+      })
+      // отправляем на клиент массив из коллекции постов
+      .then((arr) => res.status(200).json(arr));
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// удаляем выбранный пост из избранной коллекции постов пользователя
+router.post("/removeFavorite/:id", verifyToken, async (req, res) => {
+  try {
+    // находим пост в БД, который хотим добавить в избранную коллекцию постов пользователя
+    const { id } = req.body;
+
+    // находим текущего юзера
+    await User.findOneAndUpdate({ email: req.user.email })
+      .then((user) => {
+        // ищем избранный пост в коллекции юзера
+        const index = user.favorites.indexOf(id);
+        if (index !== 1) {
+          // если такой пост есть - удаляем его из коллекции
+          user.favorites.splice(index, 1);
+        }
+        // возвращаем из промиса объект юзера
+        return user;
+      })
+      .then((user) => {
+        // сохраняем юзера
+        user.save();
+        // возвращаем из промиса коллекцию избранных постов юзера
+        return user.favorites;
+      })
+      // отправляем коллекцию на клиент
+      .then((arr) => res.status(200).json(arr));
+  } catch (err) {
+    console.log(err);
+  }
+});
+
 // поиск автора по никнейму (открывается страница с информацией о пользователе)
 router.get("/profile/:user_name", async (req, res) => {
   try {

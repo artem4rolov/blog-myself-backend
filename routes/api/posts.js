@@ -171,8 +171,13 @@ router.delete(
       const author = req.user.user_name;
       // находим id поста, к которому хотим создать комментарий
       const id = req.params.id;
-      // ищем пост, который хотим удалить
 
+      // проверяем, есть ли пост в избранной коллекции всех пользователей
+      // await User.favorites
+      //   .find({ id })
+      //   .then((collection) => console.log(collection));
+
+      // ищем пост, который хотим удалить
       await Post.findById({
         _id: id,
       }).then((res) => {
@@ -183,7 +188,7 @@ router.delete(
             // теперь идем в модель Comment, находим каждый комментарий по id (comment) и удаляем его
             Comment.findByIdAndDelete({
               _id: comment,
-            })
+            }).then(() => console.log("Комментарии удалены"))
           );
         } else if (!res.comments || res.comments == null) {
           return;
