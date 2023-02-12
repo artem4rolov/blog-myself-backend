@@ -37,6 +37,19 @@ router.get("/:id", async (req, res) => {
     });
 });
 
+// Получение комментов конкретного пользователя
+router.get("/comments/user", verifyToken, async (req, res) => {
+  try {
+    // находим пост в БД по id
+    const comments = await Comment.find({ author: req.user.user_name });
+    // выводим данные на фронт
+    res.json(comments);
+  } catch (err) {
+    console.log(err);
+    res.status(400).send({ message: err });
+  }
+});
+
 // Получение комментов конкретного поста
 router.get("/:id/comments", async (req, res) => {
   try {

@@ -84,7 +84,7 @@ router.post("/removeFavorite/:id", verifyToken, async (req, res) => {
   }
 });
 
-// поиск автора по никнейму (открывается страница с информацией о пользователе)
+// поиск профиля автора по никнейму (открывается страница с информацией о пользователе)
 router.get("/profile/:user_name", async (req, res) => {
   try {
     // const { user_name } = req.params.user_name;
@@ -217,6 +217,31 @@ router.patch("/editProfile", verifyToken, async (req, res) => {
     // ищем пользователя в БД
     const user = await User.findOne({ email });
 
+    // обновляем автора во всех комментариях этого автора
+    await Comment.find({ author: req.user.user_name })
+      .then((comments) => {
+        comments.forEach((comment) => {
+          if (comment.author === req.user.user_name || user.user_name) {
+            comment.author = user_name;
+            comment.userImg = avatar !== null ? avatar : req.user.avatar;
+          }
+          comment.save();
+        });
+      })
+      .then(() => {});
+
+    // обновляем автора во всех постах автора
+    await Post.find({ author: req.user.user_name })
+      .then((posts) => {
+        posts.forEach((post) => {
+          if (post.author === req.user.user_name) {
+            post.author = user_name;
+          }
+          post.save();
+        });
+      })
+      .then(() => {});
+
     // создаем новый токен
     const newToken = jwt.sign(
       {
@@ -251,31 +276,6 @@ router.patch("/editProfile", verifyToken, async (req, res) => {
         res.status(400).send({ message: "Ошибка при обновлении профиля" }),
           console.log(err);
       });
-
-    // обновляем автора во всех комментариях этого автора
-    await Comment.find({ author: req.user.user_name })
-      .then((comments) => {
-        comments.forEach((comment) => {
-          if (comment.author === req.user.user_name || user.user_name) {
-            comment.author = user_name;
-            comment.userImg = avatar !== null ? avatar : req.user.avatar;
-          }
-          comment.save();
-        });
-      })
-      .then(() => {});
-
-    // обновляем автора во всех постах автора
-    await Post.find({ author: req.user.user_name })
-      .then((posts) => {
-        posts.forEach((post) => {
-          if (post.author === req.user.user_name) {
-            post.author = user_name;
-          }
-          post.save();
-        });
-      })
-      .then(() => {});
   } catch (err) {
     console.log(err);
   }
