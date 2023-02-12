@@ -154,12 +154,12 @@ router.patch(
       return res.status(400).json(errors);
     }
     // если все ок - достаем из запроса заголовок для поста и текст для поста
-    const { title, body } = req.body;
+    const { title, body, cover } = req.body;
     Post.findOneAndUpdate(
       // определяем автора и id поста, который нужно изменить
-      { author, _id: req.params.id },
+      { author, _id: req.body.id },
       // меняем заголовок и текст поста, увеличиваем счетчик просмоторв на 1
-      { $inc: { viewCount: 1 }, $set: { title, body } },
+      { $inc: { viewCount: 1 }, $set: { title, body, cover } },
       // возвращаем новый документ в БД
       { new: true }
     )

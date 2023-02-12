@@ -60,7 +60,7 @@ router.post("/removeFavorite/:id", verifyToken, async (req, res) => {
     const { id } = req.body;
 
     // находим текущего юзера
-    await User.findOneAndUpdate({ email: req.user.email })
+    await User.findOne({ email: req.user.email })
       .then((user) => {
         // ищем избранный пост в коллекции юзера
         const index = user.favorites.indexOf(id);
@@ -84,7 +84,7 @@ router.post("/removeFavorite/:id", verifyToken, async (req, res) => {
   }
 });
 
-// поиск профиля автора по никнейму (открывается страница с информацией о пользователе)
+// профиль автора по никнейму (открывается страница с информацией о пользователе)
 router.get("/profile/:user_name", async (req, res) => {
   try {
     // const { user_name } = req.params.user_name;
